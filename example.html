@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game (Rainbow Body & Cat Head)</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            color: white;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 3px solid white;
+            /* background-color: black; */
+            background-image: url(cat_head.png);
+            background-repeat: repeat;
+        }
+        #score {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        #gameOverText {
+            display: none;
+            font-size: 24px;
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="gameOverText">Game Over! Press ENTER to restart.</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const box = 20;
+        let snake, direction, changingDirection, food, score, gameRunning, gameLoop;
+        
+        // Load the cat image
+        const catHead = new Image();
+        catHead.src = "cat_head.png"; // Make sure this file exists!
+        catHead.onload = function() {
+            resetGame(); // Start the game AFTER image loads
+        };
+
+        // Define pastel rainbow colors
+        const pastelRainbowColors = [
+            "#FFB3BA", // Pastel pink
+            "#FFDFBA", // Pastel orange
+            "#FFFFBA", // Pastel yellow
+            "#BAFFB3", // Pastel green
+            "#BAE1FF", // Pastel blue
+            "#D0BAFF", // Pastel indigo
+            "#FFC3BA"  // Pastel violet
+        ];
+
+        function resetGame() {
+            snake = [{ x: 200, y: 200 }];
+            direction = "RIGHT";
+            changingDirection = false;
+            food = generateFood();
+            score = 0;
+            gameRunning = true;
+            document.getElementById("score").textContent = `Score: ${score}`;
+            document.getElementById("gameOverText").style.display = "none";
+
+            if (gameLoop) clearInterval(gameLoop); 
+            gameLoop = setInterval(update, 100);
+        }
+
+        document.addEventListener("keydown", function(event) {
+            if (!gameRunning && event.key === "Enter") {
+                resetGame();
+            }
+        });
+
+        document.addEventListener("keydown", changeDirection);
+
+        function changeDirection(event) {
+            if (changingDirection) return;
+
+            const key = event.key;
+            if ((key === "ArrowUp" || key === "w") && direction !== "DOWN") direction = "UP";
+            else if ((key === "ArrowDown" || key === "s") && direction !== "UP") direction = "DOWN";
+            else if ((key === "ArrowLeft" || key === "a") && direction !== "RIGHT") direction = "LEFT";
+            else if ((key === "ArrowRight" || key === "d") && direction !== "LEFT") direction = "RIGHT";
+
+            changingDirection = true;
+        }
+
+        function drawSnake() {
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    ctx.drawImage(catHead, segment.x, segment.y, box, box); // Cat head for the snake!
+                } else {
+                    ctx.fillStyle = pastelRainbowColors[index % pastelRainbowColors.length]; // Cycle through pastel rainbow colors
+                    ctx.fillRect(segment.x, segment.y, box, box);
+                }
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, box, box);
+        }
+
+        function moveSnake() {
+            let head = { ...snake[0] };
+
+            if (direction === "UP") head.y -= box;
+            if (direction === "DOWN") head.y += box;
+            if (direction === "LEFT") head.x -= box;
+            if (direction === "RIGHT") head.x += box;
+
+            if (head.x === food.x && head.y === food.y) {
+                food = generateFood();
+                score += 10;
+                document.getElementById("score").textContent = `Score: ${score}`;
+            } else {
+                snake.pop();
+            }
+
+            if (isGameOver(head)) {
+                gameRunning = false;
+                document.getElementById("gameOverText").style.display = "block";
+                clearInterval(gameLoop);
+                return;
+            }
+
+            snake.unshift(head);
+            changingDirection = false;
+        }
+
+        function isGameOver(head) {
+            return (
+                head.x < 0 || head.x >= canvas.width ||
+                head.y < 0 || head.y >= canvas.height ||
+                snake.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y)
+            );
+        }
+
+        function generateFood() {
+            let newFood;
+            do {
+                newFood = {
+                    x: Math.floor(Math.random() * (canvas.width / box)) * box,
+                    y: Math.floor(Math.random() * (canvas.height / box)) * box,
+                };
+            } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+            return newFood;
+        }
+
+        function update() {
+            if (gameRunning) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawFood();
+                moveSnake();
+                drawSnake();
+            }
+        }
+    </script>
+</body>
+</html>
